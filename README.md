@@ -1,1 +1,3 @@
 # RLRacingCarEnvironment
+
+pip install pygame
