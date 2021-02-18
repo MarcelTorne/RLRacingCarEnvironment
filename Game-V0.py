@@ -101,7 +101,6 @@ def left_lidar(car_x, car_y):
         counter+=1
 
     pygame.draw.line(gameDisplay, black, (start_lidar_x, start_lidar_y ), (extreme_x, extreme_y))
-    print(f"left lidar {lidar_dist} {extreme_x}, {extreme_y}")
     return lidar_dist
 
 def right_lidar(car_x, car_y):
@@ -126,7 +125,6 @@ def right_lidar(car_x, car_y):
         counter+=1
 
     pygame.draw.line(gameDisplay, black, (start_lidar_x, start_lidar_y ), (extreme_x, extreme_y))
-    print(f"left lidar {lidar_dist} {extreme_x}, {extreme_y}")
     return lidar_dist
 
 def draw_lidar(car_x, car_y):
