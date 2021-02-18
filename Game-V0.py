@@ -1,7 +1,9 @@
 import pygame
 import time
 import random
-
+import math
+from math import tan
+from math import sqrt
 pygame.init()
 
 display_width = 800
@@ -26,10 +28,6 @@ cone_width = 51
 cone_height = 51
 cone_speed = 5
 track = [] #(x,y)
-
-def things(thingx, thingy, thingw, thingh, color):
-    gameDisplay.blit(coneImg, (thingx,thingy))
-    gameDisplay.blit(coneImg, (thingx+track_width,thingy))
     
 def car(x,y):
     gameDisplay.blit(carImg, (x,y))
@@ -54,6 +52,86 @@ def message_display(text):
 def crash():
     message_display('You Crashed')
 
+def front_lidar(car_x, car_y):
+    front_lidar_x = car_x + car_width/2
+    front_lidar_dist = car_y
+    for (x,y) in track:
+        if(front_lidar_x > x and front_lidar_x < x + cone_width):
+            front_lidar_dist = min(front_lidar_dist, car_y-y-cone_height)
+
+    pygame.draw.line(gameDisplay, black, (front_lidar_x, car_y), (front_lidar_x, car_y-front_lidar_dist))
+    print(front_lidar_dist)
+    return front_lidar_dist
+
+def distance(x1, y1, x2, y2):
+    return sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2))
+
+def cone_crosses_line(start_x, start_y, end_x, end_y, x,y, right_side):
+    a = (end_y - start_y) / (end_x-start_x)
+    b = end_y - a*end_x
+
+    cross_horizontal_x = (y + cone_height - b)/a
+    cross_vertical_y = a*(x+ (cone_width if right_side else 0))+b
+
+    if(cross_vertical_y >= y and cross_vertical_y <= y + cone_height):
+        return True, x + ( cone_width if right_side else 0), cross_vertical_y 
+    if(cross_horizontal_x >= x and cross_horizontal_x <= x + cone_width):
+        return True, cross_horizontal_x, y + cone_height
+    return False, 0, 0
+
+def left_lidar(car_x, car_y):
+    start_lidar_x = car_x + car_width/2
+    start_lidar_y = car_y
+    display_side_x = 0
+    display_side_y = start_lidar_y-tan(math.pi/6)*start_lidar_x
+    extreme_x = display_side_x
+    extreme_y = display_side_y
+    lidar_dist = distance(start_lidar_x, start_lidar_y , display_side_x, display_side_y)
+    
+    counter = 0
+    for (x,y) in track:
+        if(counter % 2 == 0):
+            answer, point_x, point_y = cone_crosses_line(start_lidar_x, start_lidar_y, display_side_x, display_side_y, x,y, True)
+            if answer:
+                dist = distance(start_lidar_x, start_lidar_y, point_x, point_y)
+                if  dist < lidar_dist:
+                    lidar_dist = dist
+                    extreme_x = point_x
+                    extreme_y = point_y
+        counter+=1
+
+    pygame.draw.line(gameDisplay, black, (start_lidar_x, start_lidar_y ), (extreme_x, extreme_y))
+    print(f"left lidar {lidar_dist} {extreme_x}, {extreme_y}")
+    return lidar_dist
+
+def right_lidar(car_x, car_y):
+    start_lidar_x = car_x + car_width/2
+    start_lidar_y = car_y
+    display_side_x = display_width
+    display_side_y = start_lidar_y-tan(math.pi/6)*(display_width-start_lidar_x)
+    extreme_x = display_side_x
+    extreme_y = display_side_y
+    lidar_dist = distance(start_lidar_x, start_lidar_y , display_side_x, display_side_y)
+    
+    counter = 0
+    for (x,y) in track:
+        if(counter % 2 == 1):
+            answer, point_x, point_y = cone_crosses_line(start_lidar_x, start_lidar_y, display_side_x, display_side_y, x,y, False)
+            if answer:
+                dist = distance(start_lidar_x, start_lidar_y, point_x, point_y)
+                if  dist < lidar_dist:
+                    lidar_dist = dist
+                    extreme_x = point_x
+                    extreme_y = point_y
+        counter+=1
+
+    pygame.draw.line(gameDisplay, black, (start_lidar_x, start_lidar_y ), (extreme_x, extreme_y))
+    print(f"left lidar {lidar_dist} {extreme_x}, {extreme_y}")
+    return lidar_dist
+
+def draw_lidar(car_x, car_y):
+    return front_lidar(car_x, car_y), left_lidar(car_x, car_y), right_lidar(car_x,car_y)
+    
 #create initial straight track
 def create_track():
     track.clear()
@@ -117,6 +195,7 @@ def game_loop():
        
         draw_track()
         update_track()
+        draw_lidar(car_x, car_y)
 
         car(car_x,car_y)
         
